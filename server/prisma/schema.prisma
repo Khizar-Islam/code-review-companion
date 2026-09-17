@@ -1,0 +1,54 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  reviews   Review[]
+}
+
+model Review {
+  id             String       @id @default(uuid())
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  prUrl          String
+  prTitle        String?
+  repoName       String?
+  status         String       @default("pending") // pending, completed, failed
+  overallSummary String?
+  createdAt      DateTime     @default(now())
+  findings       Finding[]
+  files          ReviewFile[]
+}
+
+model ReviewFile {
+  id        String  @id @default(uuid())
+  reviewId  String
+  review    Review  @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  filePath  String
+  status    String // added, modified, removed, renamed
+  additions Int     @default(0)
+  deletions Int     @default(0)
+  patch     String? // unified diff text for this file, GitHub PR-files-API style
+}
+
+model Finding {
+  id         String   @id @default(uuid())
+  reviewId   String
+  review     Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  filePath   String
+  lineNumber Int?
+  severity   String   // critical, warning, suggestion
+  category   String   // bug, style, security, cross-file, performance
+  message    String
+  createdAt  DateTime @default(now())
+}

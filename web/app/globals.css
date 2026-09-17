@@ -1,0 +1,128 @@
+@import "tailwindcss";
+
+:root {
+  --background: #faf8f4;
+  --foreground: #1c1a17;
+  --muted: #78716c;
+  --border: #e7e2d9;
+  --surface: #ffffff;
+  --accent: #b45309;
+
+  --severity-critical: #b42318;
+  --severity-critical-bg: #fdf1f0;
+  --severity-warning: #92400e;
+  --severity-warning-bg: #fdf3e7;
+  --severity-suggestion: #3b4a5a;
+  --severity-suggestion-bg: #eef1f4;
+
+  --diff-background-color: var(--surface);
+  --diff-text-color: var(--foreground);
+  --diff-font-family: var(--font-geist-mono), Consolas, Courier, monospace;
+  --diff-gutter-insert-background-color: #d6fedb;
+  --diff-code-insert-background-color: #eaffee;
+  --diff-gutter-delete-background-color: #fadde0;
+  --diff-code-delete-background-color: #fdeff0;
+  --diff-gutter-selected-background-color: #fdecd2;
+  --diff-code-selected-background-color: #fdecd2;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-surface: var(--surface);
+  --color-accent: var(--accent);
+  --color-severity-critical: var(--severity-critical);
+  --color-severity-critical-bg: var(--severity-critical-bg);
+  --color-severity-warning: var(--severity-warning);
+  --color-severity-warning-bg: var(--severity-warning-bg);
+  --color-severity-suggestion: var(--severity-suggestion);
+  --color-severity-suggestion-bg: var(--severity-suggestion-bg);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #16140f;
+    --foreground: #f2efe9;
+    --muted: #a39d92;
+    --border: #322e26;
+    --surface: #1e1b15;
+    --accent: #e0973f;
+
+    --severity-critical: #f2705f;
+    --severity-critical-bg: #2c1613;
+    --severity-warning: #eab260;
+    --severity-warning-bg: #2b2011;
+    --severity-suggestion: #9fb2c7;
+    --severity-suggestion-bg: #1a2128;
+
+    --diff-gutter-insert-background-color: #1c3326;
+    --diff-code-insert-background-color: #16241c;
+    --diff-gutter-delete-background-color: #3a1e1c;
+    --diff-code-delete-background-color: #2a1615;
+    --diff-gutter-selected-background-color: #3a2a15;
+    --diff-code-selected-background-color: #3a2a15;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Diff lines tint their background in top-to-bottom on load. Delay is keyed
+   off each row's position within its hunk (nth-of-type below) rather than a
+   per-line React prop, since react-diff-view doesn't expose one. */
+@keyframes diff-tint-insert {
+  from {
+    background-color: transparent;
+  }
+  to {
+    background-color: var(--diff-code-insert-background-color);
+  }
+}
+@keyframes diff-tint-delete {
+  from {
+    background-color: transparent;
+  }
+  to {
+    background-color: var(--diff-code-delete-background-color);
+  }
+}
+.diff-code-insert,
+.diff-gutter-insert {
+  animation: diff-tint-insert 0.35s ease-out backwards;
+}
+.diff-code-delete,
+.diff-gutter-delete {
+  animation: diff-tint-delete 0.35s ease-out backwards;
+}
+
+.diff-hunk tr:nth-of-type(1) .diff-code-insert, .diff-hunk tr:nth-of-type(1) .diff-gutter-insert, .diff-hunk tr:nth-of-type(1) .diff-code-delete, .diff-hunk tr:nth-of-type(1) .diff-gutter-delete { animation-delay: 0ms; }
+.diff-hunk tr:nth-of-type(2) .diff-code-insert, .diff-hunk tr:nth-of-type(2) .diff-gutter-insert, .diff-hunk tr:nth-of-type(2) .diff-code-delete, .diff-hunk tr:nth-of-type(2) .diff-gutter-delete { animation-delay: 35ms; }
+.diff-hunk tr:nth-of-type(3) .diff-code-insert, .diff-hunk tr:nth-of-type(3) .diff-gutter-insert, .diff-hunk tr:nth-of-type(3) .diff-code-delete, .diff-hunk tr:nth-of-type(3) .diff-gutter-delete { animation-delay: 70ms; }
+.diff-hunk tr:nth-of-type(4) .diff-code-insert, .diff-hunk tr:nth-of-type(4) .diff-gutter-insert, .diff-hunk tr:nth-of-type(4) .diff-code-delete, .diff-hunk tr:nth-of-type(4) .diff-gutter-delete { animation-delay: 105ms; }
+.diff-hunk tr:nth-of-type(5) .diff-code-insert, .diff-hunk tr:nth-of-type(5) .diff-gutter-insert, .diff-hunk tr:nth-of-type(5) .diff-code-delete, .diff-hunk tr:nth-of-type(5) .diff-gutter-delete { animation-delay: 140ms; }
+.diff-hunk tr:nth-of-type(6) .diff-code-insert, .diff-hunk tr:nth-of-type(6) .diff-gutter-insert, .diff-hunk tr:nth-of-type(6) .diff-code-delete, .diff-hunk tr:nth-of-type(6) .diff-gutter-delete { animation-delay: 175ms; }
+.diff-hunk tr:nth-of-type(7) .diff-code-insert, .diff-hunk tr:nth-of-type(7) .diff-gutter-insert, .diff-hunk tr:nth-of-type(7) .diff-code-delete, .diff-hunk tr:nth-of-type(7) .diff-gutter-delete { animation-delay: 210ms; }
+.diff-hunk tr:nth-of-type(8) .diff-code-insert, .diff-hunk tr:nth-of-type(8) .diff-gutter-insert, .diff-hunk tr:nth-of-type(8) .diff-code-delete, .diff-hunk tr:nth-of-type(8) .diff-gutter-delete { animation-delay: 245ms; }
+.diff-hunk tr:nth-of-type(9) .diff-code-insert, .diff-hunk tr:nth-of-type(9) .diff-gutter-insert, .diff-hunk tr:nth-of-type(9) .diff-code-delete, .diff-hunk tr:nth-of-type(9) .diff-gutter-delete { animation-delay: 280ms; }
+.diff-hunk tr:nth-of-type(10) .diff-code-insert, .diff-hunk tr:nth-of-type(10) .diff-gutter-insert, .diff-hunk tr:nth-of-type(10) .diff-code-delete, .diff-hunk tr:nth-of-type(10) .diff-gutter-delete { animation-delay: 315ms; }
+.diff-hunk tr:nth-of-type(11) .diff-code-insert, .diff-hunk tr:nth-of-type(11) .diff-gutter-insert, .diff-hunk tr:nth-of-type(11) .diff-code-delete, .diff-hunk tr:nth-of-type(11) .diff-gutter-delete { animation-delay: 350ms; }
+.diff-hunk tr:nth-of-type(12) .diff-code-insert, .diff-hunk tr:nth-of-type(12) .diff-gutter-insert, .diff-hunk tr:nth-of-type(12) .diff-code-delete, .diff-hunk tr:nth-of-type(12) .diff-gutter-delete { animation-delay: 385ms; }
+.diff-hunk tr:nth-of-type(13) .diff-code-insert, .diff-hunk tr:nth-of-type(13) .diff-gutter-insert, .diff-hunk tr:nth-of-type(13) .diff-code-delete, .diff-hunk tr:nth-of-type(13) .diff-gutter-delete { animation-delay: 420ms; }
+.diff-hunk tr:nth-of-type(14) .diff-code-insert, .diff-hunk tr:nth-of-type(14) .diff-gutter-insert, .diff-hunk tr:nth-of-type(14) .diff-code-delete, .diff-hunk tr:nth-of-type(14) .diff-gutter-delete { animation-delay: 455ms; }
+.diff-hunk tr:nth-of-type(15) .diff-code-insert, .diff-hunk tr:nth-of-type(15) .diff-gutter-insert, .diff-hunk tr:nth-of-type(15) .diff-code-delete, .diff-hunk tr:nth-of-type(15) .diff-gutter-delete { animation-delay: 490ms; }
+.diff-hunk tr:nth-of-type(16) .diff-code-insert, .diff-hunk tr:nth-of-type(16) .diff-gutter-insert, .diff-hunk tr:nth-of-type(16) .diff-code-delete, .diff-hunk tr:nth-of-type(16) .diff-gutter-delete { animation-delay: 525ms; }
+.diff-hunk tr:nth-of-type(17) .diff-code-insert, .diff-hunk tr:nth-of-type(17) .diff-gutter-insert, .diff-hunk tr:nth-of-type(17) .diff-code-delete, .diff-hunk tr:nth-of-type(17) .diff-gutter-delete { animation-delay: 560ms; }
+.diff-hunk tr:nth-of-type(18) .diff-code-insert, .diff-hunk tr:nth-of-type(18) .diff-gutter-insert, .diff-hunk tr:nth-of-type(18) .diff-code-delete, .diff-hunk tr:nth-of-type(18) .diff-gutter-delete { animation-delay: 595ms; }
+.diff-hunk tr:nth-of-type(19) .diff-code-insert, .diff-hunk tr:nth-of-type(19) .diff-gutter-insert, .diff-hunk tr:nth-of-type(19) .diff-code-delete, .diff-hunk tr:nth-of-type(19) .diff-gutter-delete { animation-delay: 630ms; }
+.diff-hunk tr:nth-of-type(20) .diff-code-insert, .diff-hunk tr:nth-of-type(20) .diff-gutter-insert, .diff-hunk tr:nth-of-type(20) .diff-code-delete, .diff-hunk tr:nth-of-type(20) .diff-gutter-delete { animation-delay: 665ms; }
+.diff-hunk tr:nth-of-type(21) .diff-code-insert, .diff-hunk tr:nth-of-type(21) .diff-gutter-insert, .diff-hunk tr:nth-of-type(21) .diff-code-delete, .diff-hunk tr:nth-of-type(21) .diff-gutter-delete { animation-delay: 700ms; }
+.diff-hunk tr:nth-of-type(22) .diff-code-insert, .diff-hunk tr:nth-of-type(22) .diff-gutter-insert, .diff-hunk tr:nth-of-type(22) .diff-code-delete, .diff-hunk tr:nth-of-type(22) .diff-gutter-delete { animation-delay: 735ms; }
+.diff-hunk tr:nth-of-type(23) .diff-code-insert, .diff-hunk tr:nth-of-type(23) .diff-gutter-insert, .diff-hunk tr:nth-of-type(23) .diff-code-delete, .diff-hunk tr:nth-of-type(23) .diff-gutter-delete { animation-delay: 770ms; }
+.diff-hunk tr:nth-of-type(24) .diff-code-insert, .diff-hunk tr:nth-of-type(24) .diff-gutter-insert, .diff-hunk tr:nth-of-type(24) .diff-code-delete, .diff-hunk tr:nth-of-type(24) .diff-gutter-delete { animation-delay: 805ms; }
