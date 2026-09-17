@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: code-review-companion-api
+    runtime: node
+    plan: free
+    rootDir: server
+    buildCommand: npm install && npx prisma migrate deploy && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      - key: GITHUB_TOKEN
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
