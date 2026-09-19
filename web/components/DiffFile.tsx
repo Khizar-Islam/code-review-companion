@@ -64,17 +64,19 @@ export function DiffFile({ file, findings }: { file: ReviewFile; findings: Findi
           <span className="text-severity-critical">-{file.deletions}</span>
         </p>
       </div>
-      <Diff
-        viewType="unified"
-        diffType={STATUS_TO_DIFF_TYPE[file.status]}
-        hunks={parsed.hunks}
-        widgets={widgets}
-        selectedChanges={hoveredKey ? [hoveredKey] : []}
-        gutterEvents={hoverHandlers}
-        codeEvents={hoverHandlers}
-      >
-        {(hunks) => hunks.map((hunk) => <Hunk key={hunk.content} hunk={hunk} />)}
-      </Diff>
+      <div className="overflow-x-auto">
+        <Diff
+          viewType="unified"
+          diffType={STATUS_TO_DIFF_TYPE[file.status]}
+          hunks={parsed.hunks}
+          widgets={widgets}
+          selectedChanges={hoveredKey ? [hoveredKey] : []}
+          gutterEvents={hoverHandlers}
+          codeEvents={hoverHandlers}
+        >
+          {(hunks) => hunks.map((hunk) => <Hunk key={hunk.content} hunk={hunk} />)}
+        </Diff>
+      </div>
     </div>
   );
 }

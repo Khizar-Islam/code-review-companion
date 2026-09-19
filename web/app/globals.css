@@ -1,5 +1,21 @@
 @import "tailwindcss";
 
+/* Flex items default to min-width:auto, which means their box refuses to
+   shrink below their content's natural (min-content) size — for a nowrap
+   diff table or a long line of text, that's the full unwrapped width. That
+   default applies independently at every level of flex nesting, so a
+   single wide leaf (e.g. a diff table) can force every flex ancestor above
+   it wider than its container, all the way up the tree, regardless of
+   max-width/overflow rules set anywhere else. This is "flexbug #1"
+   (https://github.com/philipwalton/flexbugs#flexbug-1), not something
+   specific to any one component — hence a single global override here
+   instead of patching min-w-0 onto each flex child as new instances of it
+   surface. Safe to apply broadly: min-width:0 only changes behavior for
+   flex/grid items in the first place, so it's a no-op everywhere else. */
+.flex > * {
+  min-width: 0;
+}
+
 :root {
   --background: #faf8f4;
   --foreground: #1c1a17;
@@ -24,10 +40,15 @@
   --diff-code-delete-background-color: #fdeff0;
   --diff-gutter-selected-background-color: #fdecd2;
   --diff-code-selected-background-color: #fdecd2;
+
+  --scan-line: var(--accent);
+  --scan-line-trail: rgba(180, 83, 9, 0.12);
+  --panel-shadow: 0 20px 40px -12px rgba(28, 26, 23, 0.25);
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-scan-line: var(--scan-line);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
   --color-border: var(--border);
@@ -65,6 +86,9 @@
     --diff-code-delete-background-color: #2a1615;
     --diff-gutter-selected-background-color: #3a2a15;
     --diff-code-selected-background-color: #3a2a15;
+
+    --scan-line-trail: rgba(224, 151, 63, 0.16);
+    --panel-shadow: 0 24px 48px -16px rgba(0, 0, 0, 0.6);
   }
 }
 
