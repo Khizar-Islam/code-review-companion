@@ -50,3 +50,14 @@ export const DAMPING = {
   panel: 7,
   camera: 5,
 } as const;
+
+// z-index for plain-DOM overlays inside the landing scroll stage (LandingCTA,
+// ScrollHint, ...). The R3F Canvas wrapper doesn't create its own CSS
+// stacking context, so drei's Html-transform panels (DiffPanel,
+// HistoryReveal) leak their distance-based z-index — up to their zIndexRange
+// default of 16777271 — straight into the same stacking context these
+// overlays live in. Any overlay left at z-index:auto loses to that whenever
+// it spatially overlaps one of those panels. This constant just needs to
+// beat drei's max; every DOM overlay in the scene should use it rather than
+// re-deriving its own number.
+export const DOM_OVERLAY_Z = 2147483000;
