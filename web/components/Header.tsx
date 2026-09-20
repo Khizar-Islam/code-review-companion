@@ -9,13 +9,16 @@ export function Header() {
   if (!session?.user) return null;
 
   return (
-    <header className="mx-auto flex w-full max-w-4xl items-center justify-between px-8 pt-8 pb-6 text-sm">
-      <Link href="/reviews" className="font-mono text-xl font-semibold tracking-tight text-foreground">
+    <header className="mx-auto flex w-full max-w-4xl items-center justify-between gap-4 px-4 pt-8 pb-6 text-sm sm:px-8">
+      <Link
+        href="/reviews"
+        className="min-w-0 shrink truncate font-mono text-base font-semibold tracking-tight text-foreground sm:text-xl"
+      >
         <span className="text-accent">AI</span> Code Review Companion
       </Link>
-      <div className="flex items-center gap-3 text-muted">
-        <span>{session.user.email}</span>
-        <button onClick={() => signOut({ callbackUrl: "/" })} className="hover:text-foreground">
+      <div className="flex shrink-0 items-center gap-3 text-muted">
+        <span className="hidden truncate sm:inline">{session.user.email}</span>
+        <button onClick={() => signOut({ callbackUrl: "/" })} className="shrink-0 hover:text-foreground">
           Sign out
         </button>
       </div>
