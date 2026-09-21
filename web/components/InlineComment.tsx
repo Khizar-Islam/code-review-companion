@@ -42,7 +42,7 @@ export function InlineComment({
         />
       </svg>
       <div
-        className={`inline-comment rounded-md border px-3 py-2.5 text-sm shadow-sm transition-colors ${
+        className={`inline-comment rounded-md border px-3 py-2.5 text-sm transition-colors ${
           highlighted ? "border-accent" : "border-border"
         } bg-surface`}
       >
