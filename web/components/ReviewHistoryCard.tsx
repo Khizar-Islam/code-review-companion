@@ -33,9 +33,9 @@ export function ReviewHistoryCard({ review }: { review: Review }) {
   return (
     <Link href={`/reviews/${review.id}`} className="block">
       <motion.article
-        whileHover={{ y: -2 }}
+        whileHover={{ y: -2, boxShadow: "var(--panel-shadow)" }}
         transition={{ duration: 0.15, ease: "easeOut" }}
-        className="group rounded-lg border border-border bg-surface p-5 shadow-sm transition-shadow hover:shadow-md"
+        className="group rounded-lg border border-border bg-surface p-5"
       >
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">

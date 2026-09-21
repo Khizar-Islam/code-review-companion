@@ -21,8 +21,9 @@ export function ScrollHint({ scrollProgress }: { scrollProgress: MotionValue<num
   return (
     <motion.div
       style={{ opacity, zIndex: DOM_OVERLAY_Z }}
-      className="pointer-events-none fixed inset-x-0 bottom-8 flex justify-center"
+      className="pointer-events-none fixed inset-x-0 bottom-8 flex flex-col items-center gap-2"
     >
+      <span className="text-sm text-muted">Scroll to see it in action</span>
       <motion.svg
         width="22"
         height="22"

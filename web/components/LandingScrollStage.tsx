@@ -4,6 +4,7 @@ import { useRef } from "react";
 import dynamic from "next/dynamic";
 import { useScroll } from "framer-motion";
 import { LandingCTA } from "./landing/LandingCTA";
+import { LandingHero } from "./landing/LandingHero";
 import { CodeWatermark } from "./landing/CodeWatermark";
 import { ScrollHint } from "./landing/ScrollHint";
 
@@ -22,6 +23,7 @@ export function LandingScrollStage() {
       <div className="sticky top-0 h-screen w-full overflow-hidden bg-background">
         <CodeWatermark />
         <LandingScene scrollProgress={scrollYProgress} />
+        <LandingHero scrollProgress={scrollYProgress} />
         <LandingCTA scrollProgress={scrollYProgress} />
         <ScrollHint scrollProgress={scrollYProgress} />
       </div>

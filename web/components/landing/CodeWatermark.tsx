@@ -137,12 +137,23 @@ function DiffLine({ line }: { line: Line }) {
   );
 }
 
-export function CodeWatermark() {
+// `position` lets non-scroll-jacked pages (e.g. /reviews) pin this as
+// viewport-fixed ambient wallpaper instead of filling the landing scroll
+// stage's own sticky container. `intensity` scales the already-low token
+// opacities further down for pages people actually read/scan, rather than
+// glance past during the landing page's momentary spectacle.
+export function CodeWatermark({
+  position = "absolute",
+  intensity = 1,
+}: {
+  position?: "absolute" | "fixed";
+  intensity?: number;
+}) {
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none absolute inset-0 select-none overflow-hidden"
-      style={{ maskImage: EDGE_FADE_MASK, WebkitMaskImage: EDGE_FADE_MASK }}
+      className={`pointer-events-none inset-0 select-none overflow-hidden ${position === "fixed" ? "fixed" : "absolute"}`}
+      style={{ maskImage: EDGE_FADE_MASK, WebkitMaskImage: EDGE_FADE_MASK, opacity: intensity }}
     >
       <div className="columns-2 gap-12 p-8 font-mono text-[11px] leading-relaxed lg:columns-3">
         {TILED_LINES.map((line, i) => (
