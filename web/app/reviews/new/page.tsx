@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { motion } from "framer-motion";
 import { createReview } from "@/lib/api";
+import { freshApiToken } from "@/lib/freshApiToken";
 
 // A small, merged PR in a widely used repo, so the diff can't disappear on us.
 const EXAMPLE_PR_URL = "https://github.com/expressjs/express/pull/3495";
@@ -30,7 +31,7 @@ export default function NewReviewPage() {
     setLoading(true);
 
     try {
-      const review = await createReview(prUrl, session.user.id);
+      const review = await createReview(prUrl, session.user.id, await freshApiToken());
       router.push(`/reviews/${review.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");

@@ -32,15 +32,21 @@ async function runAiReview(reviewId: string, files: { filePath: string; patch: s
   }
 }
 
-// POST /api/reviews - { prUrl, userId } -> fetches the real diff from GitHub,
+// Every route here sits behind requireUser, so req.userId is the verified
+// owner. Lookups are scoped to it, and another user's review gets the same
+// 404 as a nonexistent one, so ids can't be probed for existence.
+
+// POST /api/reviews - { prUrl } -> fetches the real diff from GitHub,
 // saves it, then runs the AI review over it. If the GitHub fetch fails, no
 // review is created at all. If the AI pass fails, the review still exists
 // with its real diff — just marked "failed" instead of "completed".
+// Any userId in the body is ignored in favor of the token's.
 reviewsRouter.post("/", async (req, res) => {
-  const { prUrl, userId } = req.body;
+  const { prUrl } = req.body;
+  const userId = req.userId!;
 
-  if (!prUrl || !userId) {
-    return res.status(400).json({ error: "prUrl and userId are required" });
+  if (!prUrl) {
+    return res.status(400).json({ error: "prUrl is required" });
   }
 
   const parsed = parsePrUrl(prUrl);
@@ -89,14 +95,15 @@ reviewsRouter.post("/", async (req, res) => {
 // Gemini call — the loser matches zero rows and gets a 409.
 reviewsRouter.post("/:id/retry", async (req, res) => {
   const { id } = req.params;
+  const userId = req.userId!;
 
   const claimed = await prisma.review.updateMany({
-    where: { id, status: "failed" },
+    where: { id, userId, status: "failed" },
     data: { status: "pending" },
   });
 
   if (claimed.count === 0) {
-    const exists = await prisma.review.findUnique({ where: { id }, select: { id: true } });
+    const exists = await prisma.review.findFirst({ where: { id, userId }, select: { id: true } });
     if (!exists) return res.status(404).json({ error: "Review not found" });
     return res.status(409).json({ error: "Only a failed review can be retried" });
   }
@@ -112,9 +119,14 @@ reviewsRouter.post("/:id/retry", async (req, res) => {
 
 // GET /api/reviews/user/:userId - history list, newest first
 // Declared before /:id so "user" isn't swallowed as a review id.
+// The URL param must match the token's user — no reading others' history.
 reviewsRouter.get("/user/:userId", async (req, res) => {
+  if (req.params.userId !== req.userId) {
+    return res.status(404).json({ error: "User not found" });
+  }
+
   const reviews = await prisma.review.findMany({
-    where: { userId: req.params.userId },
+    where: { userId: req.userId },
     include: { findings: true },
     orderBy: { createdAt: "desc" },
   });
@@ -124,8 +136,8 @@ reviewsRouter.get("/user/:userId", async (req, res) => {
 
 // GET /api/reviews/:id - one review with all findings and diffed files
 reviewsRouter.get("/:id", async (req, res) => {
-  const review = await prisma.review.findUnique({
-    where: { id: req.params.id },
+  const review = await prisma.review.findFirst({
+    where: { id: req.params.id, userId: req.userId },
     include: { findings: true, files: true },
   });
 
@@ -138,6 +150,13 @@ reviewsRouter.get("/:id", async (req, res) => {
 
 // DELETE /api/reviews/:id
 reviewsRouter.delete("/:id", async (req, res) => {
-  await prisma.review.delete({ where: { id: req.params.id } });
+  const deleted = await prisma.review.deleteMany({
+    where: { id: req.params.id, userId: req.userId },
+  });
+
+  if (deleted.count === 0) {
+    return res.status(404).json({ error: "Review not found" });
+  }
+
   res.status(204).send();
 });
