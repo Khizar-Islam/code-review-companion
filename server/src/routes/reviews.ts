@@ -5,6 +5,22 @@ import { reviewDiff, GeminiReviewError } from "../lib/gemini";
 
 export const reviewsRouter = Router();
 
+// Maps an AI-pass failure to the message saved as a failed review's summary.
+// Gemini's raw error bodies are JSON dumps, so they're logged server-side
+// instead of being shown to the user.
+function toUserFacingMessage(err: unknown): string {
+  const status = err instanceof GeminiReviewError ? err.status : undefined;
+  const message = err instanceof Error ? err.message : "";
+
+  if (status === 429) {
+    return "Gemini daily quota exceeded — please try again after the quota resets.";
+  }
+  if (status === 503 || /overloaded/i.test(message)) {
+    return "Gemini is temporarily overloaded — please try again in a few minutes.";
+  }
+  return "Review failed due to an unexpected error. Please retry.";
+}
+
 // Runs the AI pass over a review's saved diff and records the outcome in
 // place — "completed" with findings, or "failed" with the reason as its
 // summary. Shared by create and retry so both save results the same way.
@@ -22,11 +38,12 @@ async function runAiReview(reviewId: string, files: { filePath: string; patch: s
       include: { findings: true, files: true },
     });
   } catch (err) {
-    const message = err instanceof GeminiReviewError ? err.message : "AI review failed";
+    const status = err instanceof GeminiReviewError ? err.status : undefined;
+    console.error(`AI review failed for review ${reviewId} (status: ${status ?? "none"}):`, err);
 
     return await prisma.review.update({
       where: { id: reviewId },
-      data: { status: "failed", overallSummary: message },
+      data: { status: "failed", overallSummary: toUserFacingMessage(err) },
       include: { findings: true, files: true },
     });
   }
