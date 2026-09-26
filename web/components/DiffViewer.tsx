@@ -20,17 +20,20 @@ export function DiffViewer({ files, findings }: { files: ReviewFile[]; findings:
     [files, findings],
   );
 
-  const [revealedCount, setRevealedCount] = useState(0);
+  // The count is tagged with the findings list it belongs to, so when the
+  // findings change (e.g. a retried review), the reveal restarts from 0
+  // without resetting state inside the effect.
+  const [reveal, setReveal] = useState({ source: orderedFindings, count: 0 });
+  const revealedCount = reveal.source === orderedFindings ? reveal.count : 0;
 
   useEffect(() => {
-    setRevealedCount(0);
     if (orderedFindings.length === 0) return;
 
     const interval = setInterval(() => {
-      setRevealedCount((count) => {
-        const next = count + 1;
-        if (next >= orderedFindings.length) clearInterval(interval);
-        return next;
+      setReveal((prev) => {
+        const count = prev.source === orderedFindings ? prev.count + 1 : 1;
+        if (count >= orderedFindings.length) clearInterval(interval);
+        return { source: orderedFindings, count };
       });
     }, REVEAL_INTERVAL_MS);
 
