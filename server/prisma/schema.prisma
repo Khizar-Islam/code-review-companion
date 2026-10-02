@@ -26,6 +26,9 @@ model Review {
   status         String       @default("pending") // pending, completed, failed
   overallSummary String?
   createdAt      DateTime     @default(now())
+  // When the current AI attempt started (set on create and on each retry).
+  // A "pending" review older than this by STALE_PENDING_MS was abandoned.
+  processingStartedAt DateTime @default(now())
   findings       Finding[]
   files          ReviewFile[]
 }

@@ -8,6 +8,11 @@ const MODELS = ["gemini-3.8-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite"]
 // 5-minute header timeout. Generous enough for large multi-file diffs.
 const REQUEST_TIMEOUT_MS = 60_000;
 
+// Hard ceiling on the whole AI step — every model and attempt combined.
+// A review still "pending" past STALE_PENDING_MS (reviews.ts) is treated as
+// abandoned, which is only safe because no live run can outlast this.
+export const AI_STEP_TIMEOUT_MS = 4 * 60_000;
+
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 // `status` is the HTTP status from Gemini's API, when the failure came from
@@ -107,7 +112,8 @@ function isTimeout(err: unknown): boolean {
 // won't recover in seconds, and a hung model is likely to hang again.
 // Other errors (bad key, bad request) fail the whole review: every model
 // would reject them the same way.
-async function generateWithModel(model: string, prompt: string): Promise<string> {
+// Each request's timeout is capped at the time left before `deadline`.
+async function generateWithModel(model: string, prompt: string, deadline: number): Promise<string> {
   for (let attempt = 0; ; attempt++) {
     const startedAt = Date.now();
     const logAttempt = (outcome: string) =>
@@ -120,7 +126,7 @@ async function generateWithModel(model: string, prompt: string): Promise<string>
         config: {
           responseMimeType: "application/json",
           responseJsonSchema: RESPONSE_SCHEMA,
-          httpOptions: { timeout: REQUEST_TIMEOUT_MS },
+          httpOptions: { timeout: Math.max(1, Math.min(REQUEST_TIMEOUT_MS, deadline - Date.now())) },
         },
       });
 
@@ -143,8 +149,9 @@ async function generateWithModel(model: string, prompt: string): Promise<string>
 
       if (status === 429) throw new ModelUnavailableError(model, "quota");
       if (status === 503) {
-        if (attempt < MAX_RETRIES) {
-          await sleep(RETRY_DELAY_MS * (attempt + 1));
+        const delay = RETRY_DELAY_MS * (attempt + 1);
+        if (attempt < MAX_RETRIES && Date.now() + delay < deadline) {
+          await sleep(delay);
           continue;
         }
         throw new ModelUnavailableError(model, "overloaded");
@@ -169,12 +176,16 @@ function allModelsFailedError(failures: ModelUnavailableError[]): GeminiReviewEr
 
 export async function reviewDiff(files: { filePath: string; patch: string | null }[]): Promise<AiReviewResult> {
   const prompt = buildPrompt(files);
+  const deadline = Date.now() + AI_STEP_TIMEOUT_MS;
 
   const failures: ModelUnavailableError[] = [];
   let text: string | undefined;
   for (const model of MODELS) {
+    if (Date.now() >= deadline) {
+      throw new GeminiReviewError(`AI step exceeded ${AI_STEP_TIMEOUT_MS}ms before trying ${model}`, undefined, true);
+    }
     try {
-      text = await generateWithModel(model, prompt);
+      text = await generateWithModel(model, prompt, deadline);
       break;
     } catch (err) {
       if (!(err instanceof ModelUnavailableError)) throw err;
