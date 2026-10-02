@@ -40,7 +40,7 @@ export function ReviewHistoryCard({ review }: { review: Review }) {
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <p className="truncate font-mono text-xs text-muted">{review.repoName ?? review.prUrl}</p>
-            <h3 className="mt-1 truncate text-sm font-semibold text-foreground">
+            <h3 className="mt-1 text-sm font-semibold text-foreground">
               {review.prTitle ?? "Awaiting review title"}
             </h3>
           </div>
