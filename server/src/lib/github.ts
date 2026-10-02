@@ -1,5 +1,13 @@
 const GITHUB_API = "https://api.github.com";
 
+// Fail at startup rather than on the first review — a missing token would
+// otherwise send "Bearer undefined", which GitHub rejects with a 401 even
+// for public repos.
+const token = process.env.GITHUB_TOKEN;
+if (!token) {
+  throw new Error("GITHUB_TOKEN is not set");
+}
+
 export interface ParsedPrUrl {
   owner: string;
   repo: string;
@@ -27,7 +35,7 @@ export class GitHubApiError extends Error {
 async function githubFetch(path: string): Promise<Response> {
   const res = await fetch(`${GITHUB_API}${path}`, {
     headers: {
-      Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+      Authorization: `Bearer ${token}`,
       Accept: "application/vnd.github+json",
       "X-GitHub-Api-Version": "2022-11-28",
     },
