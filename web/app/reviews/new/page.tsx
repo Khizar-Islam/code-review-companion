@@ -2,23 +2,25 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { motion } from "framer-motion";
 import { createReview } from "@/lib/api";
-import { TEMP_USER_ID } from "@/lib/constants";
 
 export default function NewReviewPage() {
   const router = useRouter();
+  const { data: session } = useSession();
   const [prUrl, setPrUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!session?.user) return;
     setError(null);
     setLoading(true);
 
     try {
-      const review = await createReview(prUrl, TEMP_USER_ID);
+      const review = await createReview(prUrl, session.user.id);
       router.push(`/reviews/${review.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");

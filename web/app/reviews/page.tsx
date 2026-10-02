@@ -1,10 +1,15 @@
 import Link from "next/link";
+import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
+import { authOptions } from "@/lib/auth";
 import { getReviewsForUser } from "@/lib/api";
-import { TEMP_USER_ID } from "@/lib/constants";
 import { ReviewList } from "@/components/ReviewList";
 
 export default async function ReviewsPage() {
-  const reviews = await getReviewsForUser(TEMP_USER_ID);
+  const session = await getServerSession(authOptions);
+  if (!session?.user) redirect("/sign-in");
+
+  const reviews = await getReviewsForUser(session.user.id);
 
   return (
     <main className="mx-auto w-full max-w-2xl px-6 py-16">
