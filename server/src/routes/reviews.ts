@@ -5,6 +5,33 @@ import { reviewDiff, GeminiReviewError } from "../lib/gemini";
 
 export const reviewsRouter = Router();
 
+// Runs the AI pass over a review's saved diff and records the outcome in
+// place — "completed" with findings, or "failed" with the reason as its
+// summary. Shared by create and retry so both save results the same way.
+async function runAiReview(reviewId: string, files: { filePath: string; patch: string | null }[]) {
+  try {
+    const { overallSummary, findings } = await reviewDiff(files);
+
+    return await prisma.review.update({
+      where: { id: reviewId },
+      data: {
+        status: "completed",
+        overallSummary,
+        findings: { create: findings },
+      },
+      include: { findings: true, files: true },
+    });
+  } catch (err) {
+    const message = err instanceof GeminiReviewError ? err.message : "AI review failed";
+
+    return await prisma.review.update({
+      where: { id: reviewId },
+      data: { status: "failed", overallSummary: message },
+      include: { findings: true, files: true },
+    });
+  }
+}
+
 // POST /api/reviews - { prUrl, userId } -> fetches the real diff from GitHub,
 // saves it, then runs the AI review over it. If the GitHub fetch fails, no
 // review is created at all. If the AI pass fails, the review still exists
@@ -51,31 +78,36 @@ reviewsRouter.post("/", async (req, res) => {
     throw err;
   }
 
-  try {
-    const { overallSummary, findings } = await reviewDiff(review.files);
+  const result = await runAiReview(review.id, review.files);
+  return res.status(201).json(result);
+});
 
-    const completed = await prisma.review.update({
-      where: { id: review.id },
-      data: {
-        status: "completed",
-        overallSummary,
-        findings: { create: findings },
-      },
-      include: { findings: true, files: true },
-    });
+// POST /api/reviews/:id/retry - re-runs the AI pass on a failed review's
+// already-saved diff (no GitHub re-fetch) and updates the review in place.
+// Only "failed" reviews can be retried. The status flip to "pending" is a
+// single conditional update, so two simultaneous clicks can't both start a
+// Gemini call — the loser matches zero rows and gets a 409.
+reviewsRouter.post("/:id/retry", async (req, res) => {
+  const { id } = req.params;
 
-    return res.status(201).json(completed);
-  } catch (err) {
-    const message = err instanceof GeminiReviewError ? err.message : "AI review failed";
+  const claimed = await prisma.review.updateMany({
+    where: { id, status: "failed" },
+    data: { status: "pending" },
+  });
 
-    const failed = await prisma.review.update({
-      where: { id: review.id },
-      data: { status: "failed", overallSummary: message },
-      include: { findings: true, files: true },
-    });
-
-    return res.status(201).json(failed);
+  if (claimed.count === 0) {
+    const exists = await prisma.review.findUnique({ where: { id }, select: { id: true } });
+    if (!exists) return res.status(404).json({ error: "Review not found" });
+    return res.status(409).json({ error: "Only a failed review can be retried" });
   }
+
+  const files = await prisma.reviewFile.findMany({
+    where: { reviewId: id },
+    select: { filePath: true, patch: true },
+  });
+
+  const result = await runAiReview(id, files);
+  return res.status(200).json(result);
 });
 
 // GET /api/reviews/user/:userId - history list, newest first

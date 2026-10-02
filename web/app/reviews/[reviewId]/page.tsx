@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { getReview } from "@/lib/api";
+import { getReview, retryReview } from "@/lib/api";
 import { ReviewSummaryCard } from "@/components/ReviewSummaryCard";
 import { DiffViewer } from "@/components/DiffViewer";
 import type { Review } from "@/lib/types";
@@ -15,6 +15,20 @@ export default function ReviewDetailPage() {
   const router = useRouter();
   const [review, setReview] = useState<Review | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const [retrying, setRetrying] = useState(false);
+  const [retryError, setRetryError] = useState<string | null>(null);
+
+  async function handleRetry() {
+    setRetrying(true);
+    setRetryError(null);
+    try {
+      setReview(await retryReview(reviewId));
+    } catch (err) {
+      setRetryError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setRetrying(false);
+    }
+  }
 
   useEffect(() => {
     if (status === "unauthenticated") router.replace("/sign-in");
@@ -51,7 +65,13 @@ export default function ReviewDetailPage() {
           <p className="text-sm text-muted">Review not found.</p>
         ) : (
           <>
-            <ReviewSummaryCard reviewId={reviewId} review={review} />
+            <ReviewSummaryCard
+              reviewId={reviewId}
+              review={review}
+              onRetry={handleRetry}
+              retrying={retrying}
+              retryError={retryError}
+            />
             {review && <DiffViewer files={review.files} findings={review.findings} />}
           </>
         )}

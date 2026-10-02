@@ -27,6 +27,17 @@ export async function getReview(id: string): Promise<Review | null> {
   return res.json();
 }
 
+export async function retryReview(id: string): Promise<Review> {
+  const res = await fetch(`${API_URL}/api/reviews/${id}/retry`, { method: "POST" });
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error ?? `Failed to retry review: ${res.status}`);
+  }
+
+  return data;
+}
+
 export async function createReview(prUrl: string, userId: string): Promise<Review> {
   const res = await fetch(`${API_URL}/api/reviews`, {
     method: "POST",
