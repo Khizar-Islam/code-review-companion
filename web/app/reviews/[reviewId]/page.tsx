@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { getReview, retryReview } from "@/lib/api";
+import { freshApiToken } from "@/lib/freshApiToken";
 import { ReviewSummaryCard } from "@/components/ReviewSummaryCard";
 import { DiffViewer } from "@/components/DiffViewer";
 import type { Review } from "@/lib/types";
@@ -22,7 +23,7 @@ export default function ReviewDetailPage() {
     setRetrying(true);
     setRetryError(null);
     try {
-      setReview(await retryReview(reviewId));
+      setReview(await retryReview(reviewId, await freshApiToken()));
     } catch (err) {
       setRetryError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
@@ -41,7 +42,7 @@ export default function ReviewDetailPage() {
     setReview(null);
     setNotFound(false);
 
-    getReview(reviewId).then((data) => {
+    freshApiToken().then((token) => getReview(reviewId, token)).then((data) => {
       if (cancelled) return;
       if (data) setReview(data);
       else setNotFound(true);

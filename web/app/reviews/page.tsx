@@ -8,9 +8,9 @@ import { CodeWatermark } from "@/components/landing/CodeWatermark";
 
 export default async function ReviewsPage() {
   const session = await getServerSession(authOptions);
-  if (!session?.user) redirect("/sign-in");
+  if (!session?.user || !session.apiToken) redirect("/sign-in");
 
-  const reviews = await getReviewsForUser(session.user.id);
+  const reviews = await getReviewsForUser(session.user.id, session.apiToken);
 
   return (
     <>

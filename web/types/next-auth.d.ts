@@ -5,6 +5,8 @@ declare module "next-auth" {
     user: {
       id: string;
     } & DefaultSession["user"];
+    // Short-lived bearer token for the Express API (see lib/apiToken.ts).
+    apiToken?: string;
   }
 }
 
