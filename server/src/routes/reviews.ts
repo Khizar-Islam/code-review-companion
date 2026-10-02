@@ -15,6 +15,9 @@ function toUserFacingMessage(err: unknown): string {
   if (status === 429) {
     return "Gemini daily quota exceeded — please try again after the quota resets.";
   }
+  if (err instanceof GeminiReviewError && err.timedOut) {
+    return "Gemini took too long to respond — please try again in a few minutes.";
+  }
   if (status === 503 || /overloaded/i.test(message)) {
     return "Gemini is temporarily overloaded — please try again in a few minutes.";
   }
