@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState } from "react";
 import { Diff, Hunk, type EventMap } from "react-diff-view";
 import { parseReviewFile, findChangeByNewLineNumber, getChangeKey } from "@/lib/diff";
 import { InlineComment } from "./InlineComment";

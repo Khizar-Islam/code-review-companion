@@ -14,8 +14,14 @@ export default function ReviewDetailPage() {
   const { reviewId } = useParams<{ reviewId: string }>();
   const { status } = useSession();
   const router = useRouter();
-  const [review, setReview] = useState<Review | null>(null);
-  const [notFound, setNotFound] = useState(false);
+  // Tagged with the reviewId it was fetched for, so navigating to another
+  // review never shows the previous one's data — it just doesn't match
+  // until the new fetch lands. `review: null` means the API found nothing.
+  const [loaded, setLoaded] = useState<{ reviewId: string; review: Review | null } | null>(null);
+  const current = loaded?.reviewId === reviewId ? loaded : null;
+  const review = current?.review ?? null;
+  const notFound = current !== null && current.review === null;
+
   const [retrying, setRetrying] = useState(false);
   const [retryError, setRetryError] = useState<string | null>(null);
 
@@ -23,7 +29,7 @@ export default function ReviewDetailPage() {
     setRetrying(true);
     setRetryError(null);
     try {
-      setReview(await retryReview(reviewId, await freshApiToken()));
+      setLoaded({ reviewId, review: await retryReview(reviewId, await freshApiToken()) });
     } catch (err) {
       setRetryError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
@@ -39,13 +45,8 @@ export default function ReviewDetailPage() {
     if (status !== "authenticated") return;
 
     let cancelled = false;
-    setReview(null);
-    setNotFound(false);
-
     freshApiToken().then((token) => getReview(reviewId, token)).then((data) => {
-      if (cancelled) return;
-      if (data) setReview(data);
-      else setNotFound(true);
+      if (!cancelled) setLoaded({ reviewId, review: data });
     });
 
     return () => {
