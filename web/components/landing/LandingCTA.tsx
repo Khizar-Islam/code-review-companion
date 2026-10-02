@@ -4,7 +4,7 @@ import Link from "next/link";
 import { motion, useTransform } from "framer-motion";
 import type { MotionValue } from "framer-motion";
 import { useSession } from "next-auth/react";
-import { BEATS } from "@/lib/motion";
+import { BEATS, DOM_OVERLAY_Z } from "@/lib/motion";
 
 // Plain DOM overlay (not part of the R3F scene) that fades in over the same
 // collapseEnd-1 window as HistoryReveal, closing the scroll story. Driven
@@ -20,12 +20,8 @@ export function LandingCTA({ scrollProgress }: { scrollProgress: MotionValue<num
 
   return (
     <motion.div
-      style={{ opacity, y }}
-      // z-index must beat drei's Html zIndexRange (default max 16777271): those
-      // panels live in the same stacking context (the R3F canvas wrapper doesn't
-      // create its own), and an explicit z-index there always paints above our
-      // z-index:auto unless we out-rank it here.
-      className="pointer-events-none absolute inset-x-0 top-20 z-[2147483000] flex flex-col items-center gap-4 px-6 text-center"
+      style={{ opacity, y, zIndex: DOM_OVERLAY_Z }}
+      className="pointer-events-none absolute inset-x-0 top-20 flex flex-col items-center gap-4 px-6 text-center"
     >
       <h2 className="text-3xl font-semibold text-foreground sm:text-4xl">Paste a link. Get a real review.</h2>
       <p className="max-w-md text-sm text-muted">
