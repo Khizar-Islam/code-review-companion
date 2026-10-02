@@ -10,6 +10,16 @@ import { ReviewSummaryCard } from "@/components/ReviewSummaryCard";
 import { DiffViewer } from "@/components/DiffViewer";
 import type { Review } from "@/lib/types";
 
+// While a review is pending, re-fetch it on this interval so it moves to
+// completed/failed without a reload. The server also marks abandoned
+// pending reviews as failed on read, so polling surfaces those too.
+const POLL_INTERVAL_MS = 10_000;
+
+// Shared by the initial load and polling.
+async function fetchReview(reviewId: string): Promise<Review | null> {
+  return getReview(reviewId, await freshApiToken());
+}
+
 export default function ReviewDetailPage() {
   const { reviewId } = useParams<{ reviewId: string }>();
   const { status } = useSession();
@@ -21,6 +31,7 @@ export default function ReviewDetailPage() {
   const current = loaded?.reviewId === reviewId ? loaded : null;
   const review = current?.review ?? null;
   const notFound = current !== null && current.review === null;
+  const isPending = review?.status === "pending";
 
   const [retrying, setRetrying] = useState(false);
   const [retryError, setRetryError] = useState<string | null>(null);
@@ -45,7 +56,7 @@ export default function ReviewDetailPage() {
     if (status !== "authenticated") return;
 
     let cancelled = false;
-    freshApiToken().then((token) => getReview(reviewId, token)).then((data) => {
+    fetchReview(reviewId).then((data) => {
       if (!cancelled) setLoaded({ reviewId, review: data });
     });
 
@@ -53,6 +64,28 @@ export default function ReviewDetailPage() {
       cancelled = true;
     };
   }, [reviewId, status]);
+
+  // Clears itself once the review is no longer pending (or on navigation),
+  // since isPending/reviewId change and the effect re-runs its cleanup.
+  useEffect(() => {
+    if (status !== "authenticated" || !isPending) return;
+
+    let cancelled = false;
+    const interval = setInterval(() => {
+      // A failed poll (network blip, server restart) is skipped — the next
+      // tick tries again.
+      fetchReview(reviewId)
+        .then((data) => {
+          if (!cancelled) setLoaded({ reviewId, review: data });
+        })
+        .catch(() => {});
+    }, POLL_INTERVAL_MS);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [reviewId, status, isPending]);
 
   if (status !== "authenticated") return null;
 
