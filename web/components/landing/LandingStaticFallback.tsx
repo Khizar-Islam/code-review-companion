@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { DiffFile } from "../DiffFile";
 import { InlineComment } from "../InlineComment";
 import { ReviewHistoryCard } from "../ReviewHistoryCard";
+import { Headline } from "./Headline";
 import { FAN_FILES, FAN_FINDINGS, LANDING_REVIEW } from "@/lib/landing-sample-data";
 
 // Non-3D, non-scroll-jacking version of the landing page — same real
@@ -28,7 +29,7 @@ export function LandingStaticFallback() {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-16 px-6 py-20">
       <section className="flex flex-col items-center gap-4 text-center">
-        <h1 className="text-3xl font-semibold text-foreground sm:text-4xl">Paste a link. Get a real review.</h1>
+        <Headline as="h1" />
         <p className="max-w-md text-sm text-muted">
           Full diff context, line-anchored findings, saved to your history — one paste, not a chat window.
         </p>
