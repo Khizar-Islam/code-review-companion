@@ -26,3 +26,18 @@ export async function getReview(id: string): Promise<Review | null> {
 
   return res.json();
 }
+
+export async function createReview(prUrl: string, userId: string): Promise<Review> {
+  const res = await fetch(`${API_URL}/api/reviews`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ prUrl, userId }),
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error ?? `Failed to create review: ${res.status}`);
+  }
+
+  return data;
+}
