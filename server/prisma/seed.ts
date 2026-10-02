@@ -195,18 +195,7 @@ async function main() {
     },
   });
 
-  await prisma.review.create({
-    data: {
-      userId: user.id,
-      prUrl: "https://github.com/fieldnote/notes-app/pull/57",
-      prTitle: "Refactor auth middleware to support multiple providers",
-      repoName: "fieldnote/notes-app",
-      status: "pending",
-      overallSummary: null,
-    },
-  });
-
-  console.log(`Seeded 1 user and 3 reviews for ${user.email}`);
+  console.log(`Seeded 1 user and 2 reviews for ${user.email}`);
 }
 
 main()
