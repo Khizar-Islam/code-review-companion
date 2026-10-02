@@ -5,8 +5,10 @@ const FALLBACK_MODEL = "gemini-3.6-flash";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
+// `status` is the HTTP status from Gemini's API, when the failure came from
+// one — lets callers tell a quota error (429) from other failures.
 export class GeminiReviewError extends Error {
-  constructor(message: string) {
+  constructor(message: string, readonly status?: number) {
     super(message);
     this.name = "GeminiReviewError";
   }
@@ -103,7 +105,10 @@ async function generateWithModel(model: string, prompt: string): Promise<string>
       if (isOverloaded) {
         throw new ModelUnavailableError(`${model} is overloaded`);
       }
-      throw new GeminiReviewError(err instanceof Error ? err.message : `${model} request failed`);
+      throw new GeminiReviewError(
+        err instanceof Error ? err.message : `${model} request failed`,
+        err instanceof ApiError ? err.status : undefined,
+      );
     }
   }
 }
