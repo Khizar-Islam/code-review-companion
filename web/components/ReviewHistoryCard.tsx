@@ -33,6 +33,7 @@ export function ReviewHistoryCard({ review }: { review: Review }) {
   return (
     <Link href={`/reviews/${review.id}`} className="block">
       <motion.article
+        layoutId={`review-${review.id}`}
         whileHover={{ y: -2, boxShadow: "var(--panel-shadow)" }}
         transition={{ duration: 0.15, ease: "easeOut" }}
         className="group rounded-lg border border-border bg-surface p-5"
