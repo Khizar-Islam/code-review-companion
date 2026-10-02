@@ -70,7 +70,7 @@ export interface PullRequestData {
 
 export async function fetchPullRequest(owner: string, repo: string, pullNumber: number): Promise<PullRequestData> {
   const prRes = await githubFetch(`/repos/${owner}/${repo}/pulls/${pullNumber}`);
-  const pr = await prRes.json();
+  const pr = (await prRes.json()) as { title: string };
 
   const files: GitHubPullFile[] = [];
   let page = 1;
@@ -78,7 +78,7 @@ export async function fetchPullRequest(owner: string, repo: string, pullNumber: 
   // The files endpoint paginates at 100/page — loop until a short page tells us we're done.
   while (true) {
     const filesRes = await githubFetch(`/repos/${owner}/${repo}/pulls/${pullNumber}/files?per_page=100&page=${page}`);
-    const batch: GitHubPullFile[] = await filesRes.json();
+    const batch = (await filesRes.json()) as GitHubPullFile[];
     files.push(...batch);
 
     if (batch.length < 100) break;
