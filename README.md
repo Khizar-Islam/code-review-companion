@@ -6,7 +6,11 @@ Paste a GitHub pull request link and get an AI review that sits on the diff itse
 
 > The API runs on a free host, so the first request after a quiet period can take up to a minute. Sign-in is Google only.
 
-<!-- Add 2-3 screenshots here (docs/ folder): the landing page, a review with inline comments, the history page -->
+![Landing page with the 3D diff scene](docs/landing.png)
+
+![A saved review with its summary and severity breakdown](docs/review.png)
+
+![Review history](docs/history.png)
 
 ## What it does
 
