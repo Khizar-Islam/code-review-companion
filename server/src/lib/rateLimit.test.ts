@@ -55,4 +55,33 @@ describe("rate limiter", () => {
     await new Promise((r) => setTimeout(r, 400));
     assert.equal((await post("a")).status, 200);
   });
+
+  // reviews.ts registers its limiters in a call of their own, before the handler (see the
+  // comment there). That only works if a request the limiter allows falls through to the
+  // handler, with the route's :id intact, and one it refuses never reaches the handler.
+  it("works when registered separately from the handler", async () => {
+    const app = express();
+    app.use((req, _res, next) => {
+      req.userId = req.get("x-test-user") ?? undefined;
+      next();
+    });
+    const router = express.Router();
+    let handlerCalls = 0;
+    router.post("/:id/retry", createLimiter({ windowMs: 60_000, limit: 1, message: "x" }, (req) => `user:${req.userId}`));
+    router.post("/:id/retry", (req, res) => {
+      handlerCalls++;
+      res.json({ id: req.params.id });
+    });
+    app.use("/reviews", router);
+    const server = app.listen(0);
+    servers.push(server);
+    const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+    const post = () => fetch(`${base}/reviews/abc/retry`, { method: "POST", headers: { "x-test-user": "a" } });
+
+    const first = await post();
+    assert.equal(first.status, 200);
+    assert.deepEqual(await first.json(), { id: "abc" });
+    assert.equal((await post()).status, 429);
+    assert.equal(handlerCalls, 1);
+  });
 });

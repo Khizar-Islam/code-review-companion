@@ -6,6 +6,12 @@ import { reviewDiff, GeminiReviewError, AI_STEP_TIMEOUT_MS, type AiFinding } fro
 
 export const reviewsRouter = Router();
 
+// Rate limits for the two routes that start a Gemini review. They are registered on their own,
+// before the handlers below, rather than passed in the same call: listing extra middleware in
+// the same call stops Express from typing req.params.id as a string.
+reviewsRouter.post("/", ...reviewLimiters);
+reviewsRouter.post("/:id/retry", ...reviewLimiters);
+
 // Maps an AI-pass failure to the message saved as a failed review's summary.
 // Gemini's raw error bodies are JSON dumps, so they're logged server-side
 // instead of being shown to the user.
@@ -103,7 +109,7 @@ async function runAiReview(
 // review is created at all. If the AI pass fails, the review still exists
 // with its real diff — just marked "failed" instead of "completed".
 // Any userId in the body is ignored in favor of the token's.
-reviewsRouter.post("/", ...reviewLimiters, async (req, res) => {
+reviewsRouter.post("/", async (req, res) => {
   const { prUrl } = req.body;
   const userId = req.userId!;
 
@@ -158,7 +164,7 @@ reviewsRouter.post("/", ...reviewLimiters, async (req, res) => {
 // "failed" via expireStalePending when read. The status flip to "pending" is a
 // single conditional update, so two simultaneous clicks can't both start a
 // Gemini call — the loser matches zero rows and gets a 409.
-reviewsRouter.post("/:id/retry", ...reviewLimiters, async (req, res) => {
+reviewsRouter.post("/:id/retry", async (req, res) => {
   const { id } = req.params;
   const userId = req.userId!;
 
