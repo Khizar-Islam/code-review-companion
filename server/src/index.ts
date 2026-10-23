@@ -4,6 +4,7 @@ import cors from "cors";
 import { reviewsRouter } from "./routes/reviews";
 import { usersRouter } from "./routes/users";
 import { requireUser, requireUserSync } from "./lib/auth";
+import { ipLimiter } from "./lib/rateLimit";
 
 const app = express();
 const port = process.env.PORT || 4000;
@@ -14,9 +15,14 @@ if (!webOrigins?.length) {
   throw new Error("WEB_ORIGIN is not set");
 }
 
+// On Render the API sits behind one proxy, so the caller's address is the last entry in
+// X-Forwarded-For. Without this every visitor would look like the proxy and share one limit.
+if (process.env.NODE_ENV === "production") app.set("trust proxy", 1);
+
 app.use(cors({ origin: webOrigins }));
 app.use(express.json());
 
+app.use("/api", ipLimiter);
 app.use("/api/reviews", requireUser, reviewsRouter);
 app.use("/api/users", requireUserSync, usersRouter);
 
