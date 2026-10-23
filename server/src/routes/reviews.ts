@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { prisma } from "../lib/prisma";
+import { reviewLimiters } from "../lib/rateLimit";
 import { parsePrUrl, fetchPullRequest, normalizeFileStatus, GitHubApiError } from "../lib/github";
 import { reviewDiff, GeminiReviewError, AI_STEP_TIMEOUT_MS, type AiFinding } from "../lib/gemini";
 
@@ -102,7 +103,7 @@ async function runAiReview(
 // review is created at all. If the AI pass fails, the review still exists
 // with its real diff — just marked "failed" instead of "completed".
 // Any userId in the body is ignored in favor of the token's.
-reviewsRouter.post("/", async (req, res) => {
+reviewsRouter.post("/", ...reviewLimiters, async (req, res) => {
   const { prUrl } = req.body;
   const userId = req.userId!;
 
@@ -157,7 +158,7 @@ reviewsRouter.post("/", async (req, res) => {
 // "failed" via expireStalePending when read. The status flip to "pending" is a
 // single conditional update, so two simultaneous clicks can't both start a
 // Gemini call — the loser matches zero rows and gets a 409.
-reviewsRouter.post("/:id/retry", async (req, res) => {
+reviewsRouter.post("/:id/retry", ...reviewLimiters, async (req, res) => {
   const { id } = req.params;
   const userId = req.userId!;
 
