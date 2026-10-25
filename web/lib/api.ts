@@ -10,6 +10,21 @@ function authHeaders(token: string): HeadersInit {
   return { Authorization: `Bearer ${token}` };
 }
 
+const FALLBACK_ERROR = "Something went wrong. Please try again.";
+
+// A failed reply isn't always the API's { error } JSON — a proxy in front of
+// it can answer with an HTML page, or the body can be empty. Anything without
+// a readable message becomes one fixed line instead of a JSON parse error.
+async function readError(res: Response): Promise<string> {
+  try {
+    const data = await res.json();
+    if (typeof data?.error === "string" && data.error) return data.error;
+  } catch {
+    // Not JSON — fall through to the fixed message.
+  }
+  return FALLBACK_ERROR;
+}
+
 // userId stays in the URL (and in createReview's body) only so the web app
 // works against both the old API and the token-checking one during rollout —
 // the token-checking API takes the user from the token and ignores these.
@@ -46,12 +61,11 @@ export async function retryReview(id: string, token: string): Promise<Review> {
     headers: authHeaders(token),
   });
 
-  const data = await res.json();
   if (!res.ok) {
-    throw new Error(data.error ?? `Failed to retry review: ${res.status}`);
+    throw new Error(await readError(res));
   }
 
-  return data;
+  return res.json();
 }
 
 export async function createReview(prUrl: string, userId: string, token: string): Promise<Review> {
@@ -61,10 +75,9 @@ export async function createReview(prUrl: string, userId: string, token: string)
     body: JSON.stringify({ prUrl, userId }),
   });
 
-  const data = await res.json();
   if (!res.ok) {
-    throw new Error(data.error ?? `Failed to create review: ${res.status}`);
+    throw new Error(await readError(res));
   }
 
-  return data;
+  return res.json();
 }
