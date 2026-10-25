@@ -79,20 +79,32 @@ const RESPONSE_SCHEMA = {
   required: ["overallSummary", "findings"],
 };
 
-function buildPrompt(files: { filePath: string; patch: string | null }[]): string {
+export function buildPrompt(files: { filePath: string; patch: string | null }[]): string {
   const diffText = files
     .filter((f) => f.patch)
     .map((f) => `FILE: ${f.filePath}\n${f.patch}`)
     .join("\n\n");
 
-  return `You are a senior engineer reviewing this pull request. Below is the full diff across all changed files. Review for bugs, security issues, style problems, and especially cross-file issues (e.g. a function signature changed in one file but not updated where it's called in another).
+  // Files GitHub sent without a patch (binary, or a diff too large to include).
+  // Listed so the model knows they changed, instead of never hearing of them.
+  const omitted = files.filter((f) => !f.patch).map((f) => `- ${f.filePath}`);
+  const omittedText = omitted.length
+    ? `\n\nFILES CHANGED BUT DIFF NOT AVAILABLE (binary or too large):\n${omitted.join("\n")}\nThese files changed, but their diff is not shown. Do not report findings on them or guess what changed in them.`
+    : "";
+
+  return `You are a senior engineer reviewing this pull request. Below is the diff of the changed files. Review for bugs, security issues, style problems, and especially cross-file issues (e.g. a function signature changed in one file but not updated where it's called in another).
+
+IMPORTANT: you only see part of each file. For each file you get the changed hunks with a few surrounding lines, not the rest of the file and not the rest of the repository. Code you cannot see (imports at the top of the file, definitions elsewhere in it, other files) may well exist. So:
+- Do NOT report something as missing, undefined or not imported unless the diff itself shows the problem, for example a diff line that removes an import while code that uses it remains.
+- If you are unsure because the relevant code is not shown, use "suggestion" severity ("warning" at most) and say in the message that this is an assumption based on partial context.
+- Use "critical" only for problems clearly visible in the diff.
 
 For each finding, set "lineNumber" to the NEW-file line number (the line number after the change is applied, matching how GitHub review comments anchor to diffs) — not the old-file line number. Use null only if a finding doesn't anchor to one specific line.
 
 Also include an "overallSummary" field (2-3 sentences).
 
 DIFF:
-${diffText}`;
+${diffText}${omittedText}`;
 }
 
 const MAX_RETRIES = 2;
