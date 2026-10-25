@@ -32,20 +32,7 @@ app.use("/api", ipLimiter);
 app.use("/api/reviews", requireUser, reviewsRouter);
 app.use("/api/users", requireUserSync, usersRouter);
 
-app.get("/health", (req, res) => {
-  // TEMPORARY - remove after measuring. Logs what Express sees as the caller's address, to
-  // check how many proxies are in front of the API. ?probe= tags a request so it's easy to
-  // find in the logs.
-  console.log(
-    "[ip-diag] " +
-      JSON.stringify({
-        probe: typeof req.query.probe === "string" ? req.query.probe.slice(0, 100) : null,
-        ip: req.ip,
-        ips: req.ips,
-        xForwardedFor: req.get("x-forwarded-for") ?? null,
-        trustProxy: app.get("trust proxy"),
-      }),
-  );
+app.get("/health", (_req, res) => {
   res.json({ status: "ok" });
 });
 

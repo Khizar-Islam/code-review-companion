@@ -15,3 +15,5 @@ services:
         sync: false
       - key: GEMINI_API_KEY
         sync: false
+      - key: TRUST_PROXY_HOPS
+        value: "3"

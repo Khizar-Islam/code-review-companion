@@ -66,7 +66,9 @@ render.yaml   Render service for the API
    | `GEMINI_API_KEY` | Yes | Google Gemini API key |
    | `API_AUTH_SECRET` | Yes | Shared secret, same value as in `web/.env.local` |
    | `WEB_ORIGIN` | Yes | Allowed web origins, comma-separated |
-   | `TRUST_PROXY_HOPS` | No | Number of proxies in front of the API in production, 1 to 5, default 1 |
+   | `TRUST_PROXY_HOPS` | No (yes on Render) | Number of proxies in front of the API in production, 1 to 5, default 1. On Render it must be `3`, see below |
+
+   On Render, set `TRUST_PROXY_HOPS=3`. That was measured: a request reaches the API through the visitor, then Cloudflare, then Render's proxy. Too low, and every visitor shows up as Render's internal proxy address and shares one rate-limit counter. Too high, and a visitor can fake their IP by sending their own `X-Forwarded-For` header. Other hosts default to 1; set it to however many proxies sit in front of the API there.
 3. In `web/`, create `.env.local` with `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `NEXTAUTH_SECRET`, `API_AUTH_SECRET` (same value as the server) and `NEXT_PUBLIC_API_URL`. Then run `npm install` and `npm run dev`.
 4. Open http://localhost:3000.
 
