@@ -56,7 +56,17 @@ render.yaml   Render service for the API
 ## Run it locally
 
 1. Create a Postgres database (Neon works) and a Google OAuth client.
-2. In `server/`, create `.env` with `DATABASE_URL`, `DIRECT_URL`, `GITHUB_TOKEN`, `GEMINI_API_KEY`, `API_AUTH_SECRET` and `WEB_ORIGIN`. Then run `npm install`, `npx prisma migrate deploy` and `npm run dev`.
+2. In `server/`, copy `.env.example` to `.env` and fill in the variables below. Then run `npm install`, `npx prisma migrate deploy` and `npm run dev`.
+
+   | Variable | Required | What it is |
+   |---|---|---|
+   | `DATABASE_URL` | Yes | Postgres connection string (Neon pooled URL) |
+   | `DIRECT_URL` | Yes | Direct Postgres connection string, used by Prisma migrations |
+   | `GITHUB_TOKEN` | Yes | GitHub personal access token for fetching PR diffs |
+   | `GEMINI_API_KEY` | Yes | Google Gemini API key |
+   | `API_AUTH_SECRET` | Yes | Shared secret, same value as in `web/.env.local` |
+   | `WEB_ORIGIN` | Yes | Allowed web origins, comma-separated |
+   | `TRUST_PROXY_HOPS` | No | Number of proxies in front of the API in production, 1 to 5, default 1 |
 3. In `web/`, create `.env.local` with `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `NEXTAUTH_SECRET`, `API_AUTH_SECRET` (same value as the server) and `NEXT_PUBLIC_API_URL`. Then run `npm install` and `npm run dev`.
 4. Open http://localhost:3000.
 
