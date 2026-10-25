@@ -17,7 +17,8 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 // `status` is the HTTP status from Gemini's API, when the failure came from
 // one — lets callers tell a quota error (429) from other failures.
-// `timedOut` marks a failure caused by REQUEST_TIMEOUT_MS rather than Gemini.
+// `timedOut` marks a failure caused by a deadline — ours (REQUEST_TIMEOUT_MS)
+// or Gemini's own (408/504) — rather than by an error Gemini reported.
 export class GeminiReviewError extends Error {
   constructor(
     message: string,
@@ -108,11 +109,14 @@ function isTimeout(err: unknown): boolean {
 }
 
 // Calls one model, retrying only on 503 ("temporarily overloaded") with
-// backoff. A 429 or timeout gives up on this model at once — a daily quota
-// won't recover in seconds, and a hung model is likely to hang again.
+// backoff. A 429 or timeout (ours, or Gemini's 408/504) gives up on this model
+// at once — a daily quota won't recover in seconds, and a hung model is likely
+// to hang again.
 // Other errors (bad key, bad request) fail the whole review: every model
 // would reject them the same way.
 // Each request's timeout is capped at the time left before `deadline`.
+// The SDK also sends that timeout to Gemini (X-Server-Timeout), so Gemini
+// often gives up a moment before we do and answers 504 "Deadline expired".
 async function generateWithModel(model: string, prompt: string, deadline: number): Promise<string> {
   for (let attempt = 0; ; attempt++) {
     const startedAt = Date.now();
@@ -147,6 +151,7 @@ async function generateWithModel(model: string, prompt: string, deadline: number
       const status = err instanceof ApiError ? err.status : undefined;
       logAttempt(`status ${status ?? "none"}`);
 
+      if (status === 408 || status === 504) throw new ModelUnavailableError(model, "timeout");
       if (status === 429) throw new ModelUnavailableError(model, "quota");
       if (status === 503) {
         const delay = RETRY_DELAY_MS * (attempt + 1);

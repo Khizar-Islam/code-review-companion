@@ -12,23 +12,22 @@ export const reviewsRouter = Router();
 reviewsRouter.post("/", ...reviewLimiters);
 reviewsRouter.post("/:id/retry", ...reviewLimiters);
 
+const TIMEOUT_MESSAGE = "The AI took too long to respond. This usually passes, so press Retry.";
+const QUOTA_MESSAGE = "The AI service is busy right now. Try again in a few minutes, or later today if it keeps happening.";
+const GENERIC_MESSAGE = "Review failed due to an unexpected error. Please retry.";
+
 // Maps an AI-pass failure to the message saved as a failed review's summary.
 // Gemini's raw error bodies are JSON dumps, so they're logged server-side
-// instead of being shown to the user.
-function toUserFacingMessage(err: unknown): string {
+// instead of being shown to the user — every return here is fixed text.
+// Overload shares the timeout message: to the user both are "slow, retry".
+export function toUserFacingMessage(err: unknown): string {
   const status = err instanceof GeminiReviewError ? err.status : undefined;
   const message = err instanceof Error ? err.message : "";
 
-  if (status === 429) {
-    return "Gemini daily quota exceeded — please try again after the quota resets.";
-  }
-  if (err instanceof GeminiReviewError && err.timedOut) {
-    return "Gemini took too long to respond — please try again in a few minutes.";
-  }
-  if (status === 503 || /overloaded/i.test(message)) {
-    return "Gemini is temporarily overloaded — please try again in a few minutes.";
-  }
-  return "Review failed due to an unexpected error. Please retry.";
+  if (status === 429) return QUOTA_MESSAGE;
+  if (err instanceof GeminiReviewError && err.timedOut) return TIMEOUT_MESSAGE;
+  if (status === 503 || /overloaded/i.test(message)) return TIMEOUT_MESSAGE;
+  return GENERIC_MESSAGE;
 }
 
 // A review still "pending" this long after its attempt started was abandoned
