@@ -4,14 +4,19 @@ import assert from "node:assert/strict";
 // gemini.ts reads this on import. A placeholder is enough: the one Gemini
 // request below is answered by a stub.
 process.env.GEMINI_API_KEY ??= "test-key";
+// The fallback tests below rely on the default model order.
+delete process.env.GEMINI_MODELS;
 
 // Imported after the env is set, rather than with a static import (which
 // would run before the line above).
 let buildPrompt: typeof import("./gemini").buildPrompt;
 let reviewDiff: typeof import("./gemini").reviewDiff;
+let parseModelList: typeof import("./gemini").parseModelList;
+let DEFAULT_MODELS: typeof import("./gemini").DEFAULT_MODELS;
+let MODELS: typeof import("./gemini").MODELS;
 
 before(async () => {
-  ({ buildPrompt, reviewDiff } = await import("./gemini"));
+  ({ buildPrompt, reviewDiff, parseModelList, DEFAULT_MODELS, MODELS } = await import("./gemini"));
 });
 
 const OMITTED_HEADING = "FILES CHANGED BUT DIFF NOT AVAILABLE (binary or too large):";
@@ -65,5 +70,80 @@ describe("reviewDiff", () => {
     } finally {
       fetchMock.mock.restore();
     }
+  });
+});
+
+describe("model order", () => {
+  it("defaults to 3.6 Flash, then Flash-Lite, then 3.8 Flash", () => {
+    assert.deepEqual(DEFAULT_MODELS, ["gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-3.8-flash"]);
+  });
+
+  it("uses the default order when GEMINI_MODELS is unset", () => {
+    assert.deepEqual(MODELS, DEFAULT_MODELS);
+    assert.deepEqual(parseModelList(undefined), DEFAULT_MODELS);
+  });
+
+  it("uses the default order when GEMINI_MODELS is empty or only blanks", () => {
+    for (const raw of ["", "   ", " , ,, "]) {
+      assert.deepEqual(parseModelList(raw), DEFAULT_MODELS, JSON.stringify(raw));
+    }
+  });
+
+  it("trims entries, skips blanks and removes duplicates, keeping first-seen order", () => {
+    assert.deepEqual(parseModelList(" model-b ,, model-a,model-b , ,model-a"), ["model-b", "model-a"]);
+  });
+});
+
+function okResponse(): Response {
+  const result = { overallSummary: "Looks fine.", findings: [] };
+  return new Response(JSON.stringify({ candidates: [{ content: { role: "model", parts: [{ text: JSON.stringify(result) }] } }] }), {
+    status: 200,
+    headers: { "content-type": "application/json" },
+  });
+}
+
+function errorResponse(status: number): Response {
+  return new Response(JSON.stringify({ error: { code: status, message: "stub", status: "stub" } }), {
+    status,
+    headers: { "content-type": "application/json" },
+  });
+}
+
+// Runs a review with the first model failing via `failFirst` and every other
+// model answering. Returns which model each request went to, in order.
+async function reviewWithFirstModelFailing(failFirst: () => Promise<Response>): Promise<string[]> {
+  const fetchMock = mock.method(globalThis, "fetch", async (url: string | URL | Request) => {
+    const model = /\/models\/([^:]+):/.exec(String(url))?.[1];
+    return model === DEFAULT_MODELS[0] ? failFirst() : okResponse();
+  });
+  try {
+    await reviewDiff([{ filePath: "a.ts", patch: PATCH }]);
+    return fetchMock.mock.calls.map((c) => /\/models\/([^:]+):/.exec(String(c.arguments[0]))?.[1] ?? "?");
+  } finally {
+    fetchMock.mock.restore();
+  }
+}
+
+describe("model fallback", () => {
+  it("moves to the next model on 429", async () => {
+    assert.deepEqual(await reviewWithFirstModelFailing(async () => errorResponse(429)), DEFAULT_MODELS.slice(0, 2));
+  });
+
+  it("moves to the next model on Gemini's 504", async () => {
+    assert.deepEqual(await reviewWithFirstModelFailing(async () => errorResponse(504)), DEFAULT_MODELS.slice(0, 2));
+  });
+
+  it("moves to the next model on our own timeout", async () => {
+    const requests = await reviewWithFirstModelFailing(async () => {
+      throw new DOMException("timed out", "AbortError");
+    });
+    assert.deepEqual(requests, DEFAULT_MODELS.slice(0, 2));
+  });
+
+  // Sleeps through the real retry backoff on one model (about 6s).
+  it("moves to the next model on 503 once retries run out", async () => {
+    const requests = await reviewWithFirstModelFailing(async () => errorResponse(503));
+    const [first, second] = DEFAULT_MODELS;
+    assert.deepEqual(requests, [first, first, first, second]);
   });
 });

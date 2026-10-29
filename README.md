@@ -29,7 +29,7 @@ Paste a GitHub pull request link and get an AI review that sits on the diff itse
 
 ## Design decisions
 
-- **Model fallback.** The review tries three Gemini models in order and moves on if one is overloaded, out of quota or too slow. Each request and the whole AI step have time limits.
+- **Model fallback.** The review tries three Gemini models in order (`gemini-3.6-flash`, then `gemini-3.5-flash-lite`, then `gemini-3.8-flash`) and moves on if one is overloaded, out of quota or too slow. Each request and the whole AI step have time limits. The `GEMINI_MODELS` variable can change the order.
 - **Stuck reviews.** A review left pending past a time limit is treated as abandoned, so it never spins forever.
 - **Auth across two hosts.** NextAuth (Google, JWT sessions) runs on the web app and the API verifies the signed token itself.
 - **Overflow test.** A Playwright test checks that no page scrolls sideways at seven phone and tablet widths.
@@ -66,6 +66,7 @@ render.yaml   Render service for the API
    | `GEMINI_API_KEY` | Yes | Google Gemini API key |
    | `API_AUTH_SECRET` | Yes | Shared secret, same value as in `web/.env.local` |
    | `WEB_ORIGIN` | Yes | Allowed web origins, comma-separated |
+   | `GEMINI_MODELS` | No | Gemini models to try, in order, comma-separated. Default `gemini-3.6-flash,gemini-3.5-flash-lite,gemini-3.8-flash` |
    | `TRUST_PROXY_HOPS` | No (yes on Render) | Number of proxies in front of the API in production, 1 to 5, default 1. On Render it must be `3`, see below |
 
    On Render, set `TRUST_PROXY_HOPS=3`. That was measured: a request reaches the API through the visitor, then Cloudflare, then Render's proxy. Too low, and every visitor shows up as Render's internal proxy address and shares one rate-limit counter. Too high, and a visitor can fake their IP by sending their own `X-Forwarded-For` header. Other hosts default to 1; set it to however many proxies sit in front of the API there.

@@ -1,8 +1,24 @@
 import { GoogleGenAI, ApiError } from "@google/genai";
 
-// Tried in order. The two Flash models share a small daily quota (~20/day);
-// Flash-Lite is the high-quota (~500/day) last resort.
-const MODELS = ["gemini-3.8-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite"];
+// Tried in order. Free-tier limits come from AI Studio, vary by model and
+// change over time, so none are written down here; check AI Studio for the
+// current ones.
+// 3.6 Flash goes first because it is the one that actually answers: in Render
+// logs from Oct 23-25, every attempt on 3.8 Flash across 5 reviews got a 503
+// ("high demand") or a 504 after ~58s, and every review ended up served by
+// 3.6, wasting 1-2 minutes of the 4-minute AI step on 3.8 first.
+// Flash-Lite is next (fast, more free-tier room); 3.8 is the last resort.
+export const DEFAULT_MODELS = ["gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-3.8-flash"];
+
+// GEMINI_MODELS overrides the order without a code change: comma-separated,
+// entries trimmed, blanks and duplicates dropped. Unset, or nothing left
+// after that, means DEFAULT_MODELS.
+export function parseModelList(raw: string | undefined): string[] {
+  const models = [...new Set((raw ?? "").split(",").map((m) => m.trim()).filter(Boolean))];
+  return models.length ? models : DEFAULT_MODELS;
+}
+
+export const MODELS = parseModelList(process.env.GEMINI_MODELS);
 
 // Per-request deadline. Without one, a hung call only fails at Node's
 // 5-minute header timeout. Generous enough for large multi-file diffs.

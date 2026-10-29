@@ -15,5 +15,7 @@ services:
         sync: false
       - key: GEMINI_API_KEY
         sync: false
+      # GEMINI_MODELS is optional (see server/.env.example), so it is not listed here.
+      # Set it in the Render dashboard to change the model order.
       - key: TRUST_PROXY_HOPS
         value: "3"

@@ -7,6 +7,7 @@ import { requireUser, requireUserSync } from "./lib/auth";
 import { ipLimiter } from "./lib/rateLimit";
 import { parseTrustProxyHops } from "./lib/trustProxy";
 import { apiNotFound, errorHandler } from "./lib/errorHandler";
+import { MODELS } from "./lib/gemini";
 
 const app = express();
 const port = process.env.PORT || 4000;
@@ -42,4 +43,5 @@ app.use(errorHandler);
 
 app.listen(port, () => {
   console.log(`Server listening on http://localhost:${port}`);
+  console.log(`[gemini] model order: ${MODELS.join(", ")}`);
 });
